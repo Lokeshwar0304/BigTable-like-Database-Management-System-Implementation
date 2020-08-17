@@ -1,79 +1,64 @@
-# Data Mining: Continuous Glucose Monitoring System Timeseries Data
+# Big Table-*like* Database Management System Implementation
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
-
   * [About the Project](#about-the-project)
-    * [Built With](#built-with)
-  * [Phase 1](#phase-1)
-  * [Phase 2](#phase-2)
-  * [Phase 3](#phase-3)
-  * [Test Data](#test-data)
-  * [Learning Outcome](#learning-outcome)
+  * [Introduction](#introduction)
+  * [Built With](#built-with)
+  * [Terminology](#terminology)
+  * [Schema](#schema)
+  * [Operations](#operations)
+  * [Advantages](#advantages)
+  * [Data](#data)
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-The project is about extracting time-series features from CGM(Continuous Glucose Monitoring) System data, classifying whether a patient had a meal or not, clustering meal data  and detecting anomalous events.
+The goal of this project is to implement a BigTable-*like* Database Management system using [MiniBase](https://research.cs.wisc.edu/coral/mini_doc/minibase.html) modules.
 
-### Data Set
-The dataset is a close dataset that consists of following variables which are collected over a lunch meal for a period of 2.5 hours with an interval of 5 minutes from a CGM system.</br>
-* Glucose Levels
-* Time stamps of the glucose taken
-* Insulin Basal Infusion
-* Insulin Bolus Infusion
-* Time stamps for each Basal or Bolus Infusion
+## Introduction
+[Big table](https://en.wikipedia.org/wiki/Bigtable) is a high performance data storage system built on Google File Systems. The data in Big table is stored in the form of key-value pairs along with time-stamps to achieve versioning. This project focuses on implementing various functionalities of a database management system for Big Table.  
 
-### Built With
-* Python
-* Spyder
-* Anaconda
-### Phase vs Folder
-* Phase 1 - Feature Extraction
-* Phase 2 - Classifying meal or no-meal
-* Phase 3 - Meal data clusters
-* Phase 4 - Anomalous events
+## Built With
+* Java
+* Eclipse IDE
+* Sublime<br/>
 
-## Feature Extraction
-Multiple time-series features were extracted from the CGM system data by measuring the frequency, magnitude, and fluctuations using statistical analysis techniques.
-Extracted Features:</br>
-* Fast Fourier Transform(Amplitude, Frequency, Phase)
-* Zero Crossings
-* Poly Fit
-* Mean Absolute Change
-* Windowed Mean</br>
+## Terminology
+* **Map:** A Map is a data structure which contains attributes that make up a relation. A *Map* comprises of 4 attributes: *Row Label, Column Label, Timestamp, and Value*.   
+* **B+ tree:** A tree based indexing structure basically used for range queries. Every internal node of a tree can have multiple records in the form of a key and a pointer.    
+* **Big Table:** This is a distributed and persistent multi- dimensional sorted map. The map is indexed by a row key, column key, and a timestamp.
+* **Index:** An index is a set of ordered references to rows of a table. Index can improve the query execution time in a database by reducing the number of physical pages that a database can access.   
+ * **B-Tree Index**: 
+   * **On Clustered Index:** B-tree index is a balanced and shallow tree-structured index in which records are present at the last level. In this the records are sorted in the last level of index.  
+   * **On Un Clustered Index:** B-tree index is a balanced and shallow tree-structured index in which the last level of tree consists of key-value pairs. In this, the last level has a pointer which points to the respective map.  
+ * **Heap File:** A heap file consists of set of unsorted records.
+* **External Sort:** [External sorting](https://www.geeksforgeeks.org/external-sorting/) is a technique in which the data is stored on the secondary memory. In the sorting phase, chunks of data small enough to fit in main memory are read, sorted, and written out to a temporary file. In the merge phase, the sorted sub-files are combined into a single larger file.  
 
-Feature matrix is created and PCA was applied to reduce the dimensions of the data set and select only top k components
+## Schema
+* BigDB corresponds to the database which in turn contains Big Tables with an indexing strategy. Each Big Table contains a heap file and index files.  
+* The data in this system is stored in database objects which are called as *Big Tables*. This table is basically a collection of records called *Maps*. These Maps replaces tuples in a traditional relational database.  
+* In each big table, Maps can be sorted and stored according to 5 different storage types(*clustering and indexing strategies*), based on the Batch/Map insert. 
+  * In Type 1, Maps will be stored randomly. 
+  * In Types 2 and 3, Maps will be sorted and stored based on row and column labels respectively. 
+  * In Types 4 and 5 , Maps will be sorted and stored based on the combined key used for (column label, row label) and (row label, value) indexes.
+* There can be atmost 3 maps with the same row and column label, but different timestamps, in the entire Big Table – irrespective of which batch they were inserted in and which storage type they were subjected to.  
+* At the end of each query operation, the program returns the number of  disk reads and writes which can be used to measure the performance of the system.
 
-## Phase 2
-The goal of this phase is to determine whether a person had meal or not. <br/>
-Implemented Adaboost, Random Forest, Gaussian Process Classifier, and SVM using the extracted feature sets, compared using the ROC curve and selected Gaussian Process Classifier (F1 score: 81%). <br/>
-Given an input, the model will determine whether the person had meal or not. <br/>
-Below are the F1 scores and accuracy of the implemented classification algorithms.</br>
+## Operations
+* **Batch Insert**: This operation is to insert a bulk amount of data (Maps) into an existing Big Table or a new Table in the database.
+* **Map Insert**: This operation is to insert a single Map into an existing Big Table or a new Table in the database.
+* **Data Filtering:** Data can be filtered using a single value(*Equality Search*) or a range of values(*Range Search*) or NULL on any of the row label, column label and value attributes.
+* **Data Retrieval:** Data can be queried, filter and retrieved using 5 different strategies(*Order-by types*).
+* **Row-Join:** A row join command to access and row-joins two bigT tables based on the column label provided and creates a new resultant bigT table.
+* **Row-Sort:** An external row sort operation in which rows are sorted according to the most recent values for a given column label.
+* **Get Count:** To get the total number of Maps, distinct row labels, and distinct column labels accross the database.
+* **Delete Table:** Delete the bigtable from the database.
 
-| Classifer | F1 Score |
-| :---         |            ---: |
-| Adaboost   | 0.68    |
-| Random Forest    | 0.63      |
-| Gaussian Process Classifier    |  0.81    |
-| Support Vector Machine    |  0.77     |
-| Logistic Regression    |  0.51      |
+## Advantages
+* Flexible Schema
+* Composite Indexing
+* Priority-based External Sorting
+* Organized distribution of data in columns
+* Ordering of the data can be maintained with the help of the timestamp column which can boost up the retrieval of records in the table.
 
-## Phase 3
-The goal of this phase is to cluster meal data based on the amount of carbohydrates in each meal. <br/>
-Apart from the features already extracted, few more features were added in this phase.<br/>
-Added Features:
-* Insulin rise between 30 and 45 minutes
-* CGM difference, which is the difference between maximum CGM for the day and CGM at 30 minutes.
-* Time difference at which the maximum CGM for the day is observed and 30<br/>
-
-Implemented KMeans and DBScan algorithms to find clusters<br/>
-The silhouette_score for KMeans is : 0.70343</br>
-K-Nearest Neighbours and Bisecting KMeans were used to assign the outliers from the DBScan to its nearest clusters.</br>
-Given the test input, the data points can be assigned to its respective cluster using trained KMeans or DBScan model.
-
-## Phase 4
-The aim of this phase is to determine anomalous events through Association rule mining.  
-Features used in this phase are maximum bolus insulin level, maximum CGM, CGM value during the start of the lunch.  
-Max CGM values and CGM values during lunch were quantized into bins respectively.  
-The goal is to find most frequent itemsets for each feature.  
-Extract all the rules, calculate confidence of each observed rule, find rule with the largest confidence for each feature.    
-The least confidence rules are tagged as anomalous events.  
+## Data
+* An excel sheet that contains row label, column label, value and timestamp in different columns.
